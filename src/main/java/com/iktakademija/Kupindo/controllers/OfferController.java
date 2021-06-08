@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.iktakademija.Kupindo.entities.CategoryEntity;
@@ -18,6 +19,7 @@ import com.iktakademija.Kupindo.repositories.OfferRepository;
 import com.iktakademija.Kupindo.repositories.UserRepository;
 import com.iktakademija.Kupindo.res.EOfferStatus;
 import com.iktakademija.Kupindo.res.ERole;
+import com.iktakademija.Kupindo.services.OfferService;
 
 @RestController
 @RequestMapping(path = "/kupindo/offers")
@@ -31,6 +33,9 @@ public class OfferController {
 
 	@Autowired
 	private UserRepository userRepository;
+
+	@Autowired
+	private OfferService offerService;
 
 	// 3.3
 	@RequestMapping(value = "", method = RequestMethod.GET)
@@ -167,5 +172,16 @@ public class OfferController {
 			}
 		}
 		return null;
+	}
+
+	// 2.1 service
+	@RequestMapping(value = "/updateAvailableOffers/{id}", method = RequestMethod.PUT)
+	public String updateAvailableOffers(@PathVariable Integer id, @RequestParam Integer boughtOffers,
+			@RequestParam Integer availableOffers) {
+		if (id == null || boughtOffers == null || availableOffers == null) {
+			return null;
+		}
+		String retVal = offerService.updateAvailableOffers(id, boughtOffers, availableOffers);
+		return retVal;
 	}
 }

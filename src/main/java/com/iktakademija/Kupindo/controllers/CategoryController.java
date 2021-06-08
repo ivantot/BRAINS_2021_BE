@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.iktakademija.Kupindo.entities.CategoryEntity;
 import com.iktakademija.Kupindo.repositories.CategoryRepository;
+import com.iktakademija.Kupindo.services.BillService;
+import com.iktakademija.Kupindo.services.OfferService;
 
 @RestController
 @RequestMapping(path = "/kupindo/categories")
@@ -19,6 +21,13 @@ public class CategoryController {
 
 	@Autowired
 	private CategoryRepository categoryRepository;
+	
+	@Autowired
+
+	private OfferService offerService;
+	@Autowired
+
+	private BillService billService;
 
 	// 2.3
 	@RequestMapping(method = RequestMethod.GET, value = "")
@@ -55,7 +64,7 @@ public class CategoryController {
 		}
 		return null;
 	}
-
+	/*
 	// 2.6
 	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
 	public CategoryEntity deleteEntity(@PathVariable Integer id) {
@@ -70,7 +79,25 @@ public class CategoryController {
 		}
 		return null;
 	}
-
+	 */
+	
+	// 2.6
+	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
+	public CategoryEntity deleteEntity(@PathVariable Integer id) {
+		// get Category by id from db
+		Optional<CategoryEntity> categoryEntity = categoryRepository.findById(id);
+		if (categoryEntity.isPresent()) {
+			// check if id exists for categories, if so, return a category that got removed,
+			// otherwise
+			// return null
+			if (!billService.categoryInBillsExists(id) || !offerService.categoryInOffersExists(id)) {
+				categoryRepository.delete(categoryEntity.get());
+				return categoryEntity.get();	
+			}
+		}
+		return null;
+	}
+	
 	// 2.7
 	@RequestMapping(method = RequestMethod.GET, value = "/{id}")
 	public CategoryEntity getById(@PathVariable Integer id) {
