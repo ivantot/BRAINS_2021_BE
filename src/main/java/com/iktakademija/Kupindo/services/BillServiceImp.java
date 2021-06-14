@@ -2,20 +2,27 @@ package com.iktakademija.Kupindo.services;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.iktakademija.Kupindo.entities.BillEntity;
+import com.iktakademija.Kupindo.entities.OfferEntity;
+import com.iktakademija.Kupindo.repositories.BillRepository;
 
 @Service
 public class BillServiceImp implements BillService {
 
 	@PersistenceContext
 	private EntityManager em;
+
+	@Autowired
+	private BillRepository billRepository;
 
 	@Override
 	public List<BillEntity> getBillsByDate(Date date1, Date date2) {
@@ -27,7 +34,7 @@ public class BillServiceImp implements BillService {
 		List<BillEntity> retVal = query.getResultList();
 		return retVal;
 	}
-	
+
 	@Override
 	public Boolean categoryInBillsExists(Integer id) {
 		// query db to see if offers can be matched with provided category id
@@ -39,5 +46,17 @@ public class BillServiceImp implements BillService {
 			return false;
 		}
 		return true;
+	}
+
+	@Override
+	public void cancelAllBillsForExpiredOffer(Optional<OfferEntity> offerEntity) {
+		if (offerEntity == null)
+			return;
+
+		// Get all bills that contains offer
+		List<BillEntity> bills = billRepository.findAllByOffer(offerEntity.get());
+		for (BillEntity billEntity : bills) {
+			billEntity.setPaymentCanceled(true);
+		}
 	}
 }

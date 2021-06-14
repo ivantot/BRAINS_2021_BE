@@ -1,7 +1,14 @@
 package com.iktakademija.Kupindo.services;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -9,6 +16,7 @@ import javax.persistence.Query;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.iktakademija.Kupindo.entities.OfferEntity;
 import com.iktakademija.Kupindo.repositories.OfferRepository;
@@ -18,10 +26,10 @@ public class OfferServiceImp implements OfferService {
 
 	@Autowired
 	private OfferRepository offerRepository;
-	
+
 	@PersistenceContext
 	private EntityManager em;
-	
+
 	@Override
 	public String updateAvailableOffers(Integer id, Integer boughtOffers, Integer availableOffers) {
 		// get offer by id from db
@@ -31,7 +39,7 @@ public class OfferServiceImp implements OfferService {
 		}
 		// not implemented! decrement available and increment bought offer count
 		//offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers()+1);
-		
+
 		// set bought and available offers per user input
 		offerEntity.get().setBoughtOffers(boughtOffers);
 		offerEntity.get().setAvailableOffers(availableOffers);
@@ -50,5 +58,26 @@ public class OfferServiceImp implements OfferService {
 			return false;
 		}
 		return true;
+	}
+
+	@Override
+	public String uploadOfferImage(MultipartFile file) throws IOException {
+
+		// Check if file is empty
+		if (file.isEmpty())
+			return null;
+
+		// If note empty, save file to disk
+		byte[] bytes = file.getBytes();
+
+		// bolje za naiv fajla GUID ili tmestamp + extenzija
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MMM-dd");
+		String fileName = String.format("%s_%s", UUID.randomUUID().toString(), LocalDate.now().format(formatter));
+
+		Path path = Paths.get("C:\\Users\\admin\\Desktop\\Brains2021\\Spring\\kupindo\\src\\main\\java\\com\\iktakademija\\kupindo\\"
+				+ "resources\\uploads\\" + fileName + file.getOriginalFilename());
+		Files.write(path, bytes);
+
+		return path.toAbsolutePath().toString();
 	}
 }

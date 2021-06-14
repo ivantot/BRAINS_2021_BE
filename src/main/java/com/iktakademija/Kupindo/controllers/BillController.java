@@ -23,6 +23,7 @@ import com.iktakademija.Kupindo.repositories.UserRepository;
 import com.iktakademija.Kupindo.res.ERole;
 import com.iktakademija.Kupindo.services.BillService;
 import com.iktakademija.Kupindo.services.OfferService;
+import com.iktakademija.Kupindo.services.VoucherService;
 
 @RestController
 @RequestMapping("/kupindo/bills")
@@ -42,6 +43,10 @@ public class BillController {
 	
 	@Autowired
 	private OfferService offerService;
+	
+	@Autowired
+	private VoucherService voucherService;
+	
 	// 3.3
 	@RequestMapping(value = "", method = RequestMethod.GET)
 	public List<BillEntity> getAllBills() {
@@ -208,7 +213,12 @@ public class BillController {
 			Optional<OfferEntity> offerEntity = offerRepository.findById(billEntity.get().getOffer().getId());
 			// do magic
 			if (paymentMade != null) {
-				billEntity.get().setPaymentMade(paymentMade);
+				if (billEntity.get().getPaymentMade() == false && paymentMade == true) {
+					billEntity.get().setPaymentMade(paymentMade);
+					voucherService.createVoucherAfterPayment(billEntity.get());
+				}
+				else billEntity.get().setPaymentMade(paymentMade);
+			
 			}
 			if (paymentCanceled == true) {
 				billEntity.get().setPaymentCanceled(paymentCanceled);

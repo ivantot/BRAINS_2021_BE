@@ -1,5 +1,6 @@
 package com.iktakademija.Kupindo.controllers;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.iktakademija.Kupindo.entities.CategoryEntity;
 import com.iktakademija.Kupindo.entities.OfferEntity;
@@ -19,6 +21,7 @@ import com.iktakademija.Kupindo.repositories.OfferRepository;
 import com.iktakademija.Kupindo.repositories.UserRepository;
 import com.iktakademija.Kupindo.res.EOfferStatus;
 import com.iktakademija.Kupindo.res.ERole;
+import com.iktakademija.Kupindo.services.BillService;
 import com.iktakademija.Kupindo.services.OfferService;
 
 @RestController
@@ -36,6 +39,9 @@ public class OfferController {
 
 	@Autowired
 	private OfferService offerService;
+	
+	@Autowired
+	private BillService billService;
 
 	// 3.3
 	@RequestMapping(value = "", method = RequestMethod.GET)
@@ -122,6 +128,9 @@ public class OfferController {
 		if (offerEntity.isPresent()) {
 			// modify offer and return if existing, otherwise null
 			offerEntity.get().setOfferStatus(status);
+			if (status == EOfferStatus.EXPIRED) {
+				billService.cancelAllBillsForExpiredOffer(offerEntity);
+			}
 			return offerRepository.save(offerEntity.get());
 		}
 		return null;
@@ -183,5 +192,34 @@ public class OfferController {
 		}
 		String retVal = offerService.updateAvailableOffers(id, boughtOffers, availableOffers);
 		return retVal;
+	}
+
+	// 3.2
+
+	@RequestMapping(method = RequestMethod.POST, path = "/uploadImage/{id}")
+	public OfferEntity uploadImageForOffer(@RequestParam(name = "file") MultipartFile file,
+			@PathVariable(name = "id") Integer id) {
+
+		if (id == null || file == null)
+			return null;
+
+		// Check do offer exists and get it. Otherwise return null
+		Optional<OfferEntity> op = offerRepository.findById(id);
+		if (op.isEmpty())
+			return null;
+		OfferEntity offer = op.get();
+		// chack file format and validate image	
+		String retVal = null;
+		try {
+			retVal = offerService.uploadOfferImage(file);
+			if (retVal == null || retVal == "")
+				return offer;
+			offer.setImagePath(retVal);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		// Return service retVal
+		offerRepository.save(offer);
+		return offer;
 	}
 }
