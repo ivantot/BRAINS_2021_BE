@@ -16,8 +16,10 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Version;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.iktakademija.Kupindo.res.EOfferStatus;
 
 @Entity
@@ -48,15 +50,19 @@ public class OfferEntity {
 	private EOfferStatus offerStatus;
 	@Version
 	private Integer version;
+	@JsonBackReference(value = "6")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "category")
 	private CategoryEntity category;
+	@JsonBackReference(value = "1")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "user") // ime kolone ce biti address
 	private UserEntity user;
+	@JsonManagedReference(value = "5")
 	@JsonIgnore
 	@OneToMany(mappedBy = "offer", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
-	private List<BillEntity> bills = new ArrayList<>();;
+	private List<BillEntity> bills = new ArrayList<>();
+	@JsonManagedReference(value = "4")
 	@JsonIgnore
 	@OneToMany(mappedBy = "offer", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	private List<VoucherEntity> vouchers = new ArrayList<>();

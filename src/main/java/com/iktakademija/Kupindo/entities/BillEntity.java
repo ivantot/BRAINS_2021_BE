@@ -12,6 +12,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -28,9 +29,11 @@ public class BillEntity {
 	private Boolean paymentCanceled;
 	@Column(nullable = false)
 	private Date billCreated;
+	@JsonBackReference(value = "5")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "offer")
 	private OfferEntity offer;
+	@JsonBackReference(value = "2")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "user")
 	private UserEntity user;

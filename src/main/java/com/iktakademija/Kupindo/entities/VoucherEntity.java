@@ -11,6 +11,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -25,9 +26,11 @@ public class VoucherEntity {
 	private LocalDate expirationDate;
 	@Column(nullable = false)
 	private Boolean isUsed;
+	@JsonBackReference(value = "4")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY) // ne stavljati json ignore kad nije lista
 	@JoinColumn(name = "offer")
 	private OfferEntity offer;
+	@JsonBackReference(value = "3")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY) // ne stavljati json ignore kad nije lista
 	@JoinColumn(name = "user")
 	private UserEntity user;

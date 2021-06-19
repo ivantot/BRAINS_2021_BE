@@ -13,8 +13,10 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Version;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.iktakademija.Kupindo.res.ERole;
 
 @Entity
@@ -39,13 +41,16 @@ public class UserEntity {
 	private ERole userRole;
 	@Version
 	private Integer version;
-	@JsonIgnore
+	//@JsonIgnore
+	@JsonManagedReference(value = "1")
 	@OneToMany(mappedBy = "user", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	private List<OfferEntity> offers = new ArrayList<>();
-	@JsonIgnore
+	//@JsonIgnore
+	@JsonManagedReference(value = "2")
 	@OneToMany(mappedBy = "user", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	private List<BillEntity> bills = new ArrayList<>();;
-	@JsonIgnore
+	//@JsonIgnore
+	@JsonManagedReference(value = "3")
 	@OneToMany(mappedBy = "user", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	private List<VoucherEntity> vouchers = new ArrayList<>();
 

@@ -15,6 +15,7 @@ import javax.persistence.Version;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 @Entity
 @JsonIgnoreProperties({ "handler", "hibernateLazyInitializer" })
@@ -30,7 +31,7 @@ public class CategoryEntity {
 	private String categoryDescription;
 	@Version
 	private Integer version;
-
+	@JsonManagedReference(value = "6")
 	@JsonIgnore
 	@OneToMany(mappedBy = "category", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	private List<OfferEntity> offers = new ArrayList<>();
