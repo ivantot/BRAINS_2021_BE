@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.fasterxml.jackson.annotation.JsonView;
+import com.iktakademija.Kupindo.entities.BillEntity;
 import com.iktakademija.Kupindo.entities.CategoryEntity;
 import com.iktakademija.Kupindo.entities.OfferEntity;
 import com.iktakademija.Kupindo.repositories.CategoryRepository;
@@ -21,8 +25,10 @@ import com.iktakademija.Kupindo.repositories.OfferRepository;
 import com.iktakademija.Kupindo.repositories.UserRepository;
 import com.iktakademija.Kupindo.res.EOfferStatus;
 import com.iktakademija.Kupindo.res.ERole;
+import com.iktakademija.Kupindo.security.Views;
 import com.iktakademija.Kupindo.services.BillService;
 import com.iktakademija.Kupindo.services.OfferService;
+import com.iktakademija.Kupindo.utils.RESTError;
 
 @RestController
 @RequestMapping(path = "/kupindo/offers")
@@ -39,17 +45,23 @@ public class OfferController {
 
 	@Autowired
 	private OfferService offerService;
-	
+
 	@Autowired
 	private BillService billService;
 
-	// 3.3
+	// 3.3 -- T5
+	@JsonView(Views.Public.class)
 	@RequestMapping(value = "", method = RequestMethod.GET)
-	public List<OfferEntity> getAllOffers() {
-		return (List<OfferEntity>) offerRepository.findAll();
+	public ResponseEntity<?> getAllOffers() {
+		List<OfferEntity> offers = (List<OfferEntity>) offerRepository.findAll();
+		if (offers.isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(3, "No offers in database"), HttpStatus.NO_CONTENT);
+		}
+		return new ResponseEntity<List<OfferEntity>>(offers, HttpStatus.OK);
 	}
 
 	// 3.4
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.POST, value = "")
 	public OfferEntity addOffer(@RequestBody OfferEntity newOffer) {
 		OfferEntity offerEntity = new OfferEntity();
@@ -67,6 +79,7 @@ public class OfferController {
 	}
 
 	// 3.5
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/{id}")
 	public OfferEntity editOffer(@PathVariable Integer id, @RequestBody OfferEntity updOffer) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
@@ -100,6 +113,7 @@ public class OfferController {
 	}
 
 	// 3.6
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
 	public OfferEntity deleteUser(@PathVariable Integer id) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
@@ -112,6 +126,7 @@ public class OfferController {
 	}
 
 	// 3.7
+	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/{id}")
 	public OfferEntity getByID(@PathVariable Integer id) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
@@ -122,6 +137,7 @@ public class OfferController {
 	}
 
 	// 3.8
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "changeOffer/{id}/status/{status}")
 	public OfferEntity editOffer(@PathVariable Integer id, @PathVariable EOfferStatus status) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
@@ -137,12 +153,14 @@ public class OfferController {
 	}
 
 	// 3.9
+	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/findByPrice/{price1}/and/{price2}")
 	public List<OfferEntity> withinRange(@PathVariable Double price1, @PathVariable Double price2) {
 		return offerRepository.findByRegularPriceBetweenOrderByRegularPriceAsc(price1, price2);
 	}
 
 	// 3.4* --> 2.3
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.POST, value = "/{categoryId}/seller/{sellerId}")
 	public OfferEntity addOfferRevisited(@RequestBody OfferEntity newOffer, @PathVariable Integer categoryId,
 			@PathVariable Integer sellerId) {
@@ -168,6 +186,7 @@ public class OfferController {
 	}
 
 	// 3.5* --> 2.4
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/{offerId}/category/{categoryId}")
 	public OfferEntity editOfferCategory(@PathVariable Integer offerId, @PathVariable Integer categoryId) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(offerId);
@@ -184,6 +203,7 @@ public class OfferController {
 	}
 
 	// 2.1 service
+	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/updateAvailableOffers/{id}", method = RequestMethod.PUT)
 	public String updateAvailableOffers(@PathVariable Integer id, @RequestParam Integer boughtOffers,
 			@RequestParam Integer availableOffers) {
@@ -195,7 +215,7 @@ public class OfferController {
 	}
 
 	// 3.2
-
+	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.POST, path = "/uploadImage/{id}")
 	public OfferEntity uploadImageForOffer(@RequestParam(name = "file") MultipartFile file,
 			@PathVariable(name = "id") Integer id) {
@@ -221,5 +241,22 @@ public class OfferController {
 		// Return service retVal
 		offerRepository.save(offer);
 		return offer;
+	}
+
+	@RequestMapping(method = RequestMethod.PUT, value = "/setPrices/{offerID}")
+	public ResponseEntity<?> setPrices(@PathVariable Integer offerID, @RequestParam Double regularPrice,
+			@RequestParam Double actionPrice) {
+		Optional<OfferEntity> offerEntity = offerRepository.findById(offerID);
+		if (offerEntity.isEmpty()) {
+			new ResponseEntity<RESTError>(new RESTError(666, "Offer not in database."), HttpStatus.NOT_FOUND);
+		}
+		if (regularPrice != null) {
+			offerEntity.get().setRegularPrice(regularPrice);
+		}
+		if (actionPrice != null) {
+			offerEntity.get().setActionPrice(actionPrice);
+		}
+
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity.get()), HttpStatus.OK);
 	}
 }

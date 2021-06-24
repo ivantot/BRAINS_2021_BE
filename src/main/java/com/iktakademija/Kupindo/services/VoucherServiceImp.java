@@ -43,7 +43,7 @@ public class VoucherServiceImp implements VoucherService {
 		object.setName(bill.getUser().getFirstName());
 		object.setLastname(bill.getUser().getLastName());
 		object.setOffer(bill.getOffer().getId());
-		object.setPrice(bill.getOffer().getRegularPrice());
+		object.setPrice(bill.getOffer().getActionPrice());
 		//add further check, which price is selling price, action or regular
 		object.setDate(voucherEntity.getExpirationDate());
 		try {

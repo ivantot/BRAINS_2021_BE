@@ -1,7 +1,6 @@
 package com.iktakademija.Kupindo.entities;
 
-import java.util.Date;
-
+import java.time.LocalDate;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -13,8 +12,11 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Version;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.iktakademija.Kupindo.security.Views;
 
 @Entity
 @JsonIgnoreProperties({ "handler", "hibernateLazyInitializer" })
@@ -23,26 +25,34 @@ public class BillEntity {
 
 	@GeneratedValue
 	@Id
+	@JsonView(Views.Public.class)
 	private Integer id;
 	
 	@Column(nullable = false)
+	@JsonView(Views.Private.class)
 	private Boolean paymentMade;
 	
 	@Column(nullable = false)
+	@JsonView(Views.Private.class)
 	private Boolean paymentCanceled;
 	
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
 	@Column(nullable = false)
-	private Date billCreated;
-	
+	@JsonView(Views.Public.class)
+	private LocalDate billCreated;
+
+	@JsonView(Views.Public.class)
 	@Version
 	private Integer version;
 	
-	@JsonBackReference(value = "5")
+	@JsonView(Views.Private.class)
+	@JsonManagedReference(value = "5")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "offer")
 	private OfferEntity offer;
 	
-	@JsonBackReference(value = "2")
+	@JsonView(Views.Private.class)
+	@JsonManagedReference(value = "2")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "user")
 	private UserEntity user;
@@ -92,11 +102,11 @@ public class BillEntity {
 		this.paymentCanceled = paymentCanceled;
 	}
 
-	public Date getBillCreated() {
+	public LocalDate getBillCreated() {
 		return billCreated;
 	}
 
-	public void setBillCreated(Date billCreated) {
+	public void setBillCreated(LocalDate billCreated) {
 		this.billCreated = billCreated;
 	}
 

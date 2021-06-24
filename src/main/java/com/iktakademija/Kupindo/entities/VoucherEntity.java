@@ -12,8 +12,11 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Version;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.iktakademija.Kupindo.security.Views;
 
 @Entity
 @JsonIgnoreProperties({ "handler", "hibernateLazyInitializer" })
@@ -22,25 +25,32 @@ public class VoucherEntity {
 
 	@Id
 	@GeneratedValue
+	@JsonView(Views.Public.class)
 	private Integer id;
 	
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy")
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private LocalDate expirationDate;
 	
 	@Column(nullable = false)
+	@JsonView(Views.Admin.class)
 	private Boolean isUsed;
 	
+	@JsonView(Views.Public.class)
 	@Version
 	private Integer version;
 	
-	@JsonBackReference(value = "4")
+	@JsonManagedReference(value = "4")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY) // ne stavljati json ignore kad nije lista
 	@JoinColumn(name = "offer")
+	@JsonView(Views.Private.class)
 	private OfferEntity offer;
 	
-	@JsonBackReference(value = "3")
+	@JsonManagedReference(value = "3")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY) // ne stavljati json ignore kad nije lista
 	@JoinColumn(name = "user")
+	@JsonView(Views.Private.class)
 	private UserEntity user;
 	
 

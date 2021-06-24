@@ -1,5 +1,6 @@
 package com.iktakademija.Kupindo.repositories;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -11,7 +12,7 @@ import com.iktakademija.Kupindo.entities.UserEntity;
 
 public interface BillRepository extends CrudRepository<BillEntity, Integer> {
 	
-	Optional <BillEntity> findByUser(Optional<UserEntity> buyer);
+	List <BillEntity> findByUser(Optional<UserEntity> buyer);
 	/*
 	@Query("SELECT * FROM BillEntity WHERE offer IN (SELECT id FROM OfferEntity WHERE category = :categoryId")
 	*/
@@ -20,5 +21,8 @@ public interface BillRepository extends CrudRepository<BillEntity, Integer> {
 	Optional <BillEntity> findByBillCreatedBetweenOrderByBillCreatedAsc(Date startDate, Date endDate);
 	
 	List <BillEntity> findAllByOffer(OfferEntity offer);
+	
+	List<BillEntity> findByBillCreatedBetween(LocalDate date1, LocalDate date2);
+	
 
 }

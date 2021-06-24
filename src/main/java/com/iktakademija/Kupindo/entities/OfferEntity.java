@@ -17,10 +17,13 @@ import javax.persistence.Table;
 import javax.persistence.Version;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.iktakademija.Kupindo.res.EOfferStatus;
+import com.iktakademija.Kupindo.security.Views;
 
 @Entity
 @JsonIgnoreProperties({ "handler", "hibernateLazyInitializer" })
@@ -29,42 +32,75 @@ public class OfferEntity {
 
 	@Id
 	@GeneratedValue
+	@JsonView(Views.Public.class)
 	private Integer id;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private String offerName;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private String offerDescription;
+	
+	@JsonFormat(pattern = "dd-MM-yyyy")
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private Date offerCreated;
+	
+	@JsonFormat(pattern = "dd-MM-yyyy")
+	@JsonView(Views.Public.class)
 	private Date offerExpires;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private Double regularPrice;
+	
+	@JsonView(Views.Public.class)
 	private Double actionPrice;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private String imagePath;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private Integer availableOffers;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private Integer boughtOffers;
+	
 	@Column(nullable = false)
+	@JsonView(Views.Public.class)
 	private EOfferStatus offerStatus;
+	
+	@JsonView(Views.Public.class)
 	@Version
 	private Integer version;
-	@JsonBackReference(value = "6")
+	
+	@JsonManagedReference(value = "6")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "category")
+	@JsonView(Views.Public.class)
 	private CategoryEntity category;
-	@JsonBackReference(value = "1")
+	
+	@JsonManagedReference(value = "1")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JoinColumn(name = "user") // ime kolone ce biti address
+	@JsonView(Views.Public.class)
 	private UserEntity user;
-	@JsonManagedReference(value = "5")
+	
+	@JsonBackReference(value = "5")
 	@JsonIgnore
 	@OneToMany(mappedBy = "offer", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
+	@JsonView(Views.Public.class)
 	private List<BillEntity> bills = new ArrayList<>();
-	@JsonManagedReference(value = "4")
+	
+	@JsonBackReference(value = "4")
 	@JsonIgnore
 	@OneToMany(mappedBy = "offer", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
+	@JsonView(Views.Public.class)
 	private List<VoucherEntity> vouchers = new ArrayList<>();
 
 	public OfferEntity() {
