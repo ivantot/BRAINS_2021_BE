@@ -2,6 +2,9 @@ package com.iktakademija.Kupindo.controllers;
 
 import java.util.List;
 import java.util.Optional;
+
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,14 +30,14 @@ public class UserController {
 	@Autowired
 	private UserRepository userRepository;
 
-	// 1.3
+	// 1.3 --> T5
 	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/public")
 	public ResponseEntity<?> getUsersPublic() {
 		// get all users from DB
 		List<UserEntity> users = (List<UserEntity>) userRepository.findAll();
 		if (users.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database"), HttpStatus.NO_CONTENT);
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
 		return new ResponseEntity<List<UserEntity>>(users, HttpStatus.OK);
 	}
@@ -45,7 +48,7 @@ public class UserController {
 		// get all users from DB
 		List<UserEntity> users = (List<UserEntity>) userRepository.findAll();
 		if (users.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database"), HttpStatus.NO_CONTENT);
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
 		return new ResponseEntity<List<UserEntity>>(users, HttpStatus.OK);
 	}
@@ -56,41 +59,28 @@ public class UserController {
 		// get all users from DB
 		List<UserEntity> users = (List<UserEntity>) userRepository.findAll();
 		if (users.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database"), HttpStatus.NO_CONTENT);
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
 		return new ResponseEntity<List<UserEntity>>(users, HttpStatus.OK);
 	}
 
-	// 1.4
+	// 1.4 --> T5 
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/{id}")
-	public UserEntity getUserByID(@PathVariable("id") Integer clientID) {
+	public ResponseEntity<?> getUserByID(@PathVariable("id") Integer clientID) {
 		// find by id
 		// get a users from DB --> if - selektorski izraz!!!!
 		Optional<UserEntity> op = userRepository.findById(clientID);
-		if (op.isPresent()) {
-			return op.get();
+		if (!op.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
-		return null;
+		return new ResponseEntity<UserEntity>(op.get(), HttpStatus.OK);
 	}
 
-	// 1.5 deprecated in T5
-	/*@JsonView(Views.Private.class)
+	// 1.5 --> T5
 	@RequestMapping(method = RequestMethod.POST, value = "")
-	public UserEntity addUser(@RequestBody UserEntity user) {
-		UserEntity userEntity = new UserEntity();
-		userEntity.setFirstName(user.getFirstName());
-		userEntity.setLastName(user.getLastName());
-		userEntity.setUsername(user.getUsername());
-		userEntity.setPassword(user.getPassword());
-		userEntity.setEmail(user.getEmail());
-		userEntity.setUserRole(ERole.ROLE_CUSTOMER);
-		return userRepository.save(userEntity);
-	}*/
-
-	// 1.5 - T5
-	@RequestMapping(method = RequestMethod.POST, value = "")
-	public ResponseEntity<?> addUser(@RequestBody UserDTO user) {
+	@JsonView(Views.Private.class)
+	public ResponseEntity<?> addUser(@Valid @RequestBody UserDTO user) {
 
 		// perform check if same username is used in database
 		if (userRepository.findByUsername(user.getUsername()).isPresent()) {
@@ -100,7 +90,7 @@ public class UserController {
 
 		// check for matching password and repeatedPassword
 		if (!user.getPassword().equals(user.getRepeatedPassword())) {
-			return new ResponseEntity<RESTError>(new RESTError(555, "Passwords not matching"), HttpStatus.FORBIDDEN);
+			return new ResponseEntity<RESTError>(new RESTError(555, "Passwords not matching."), HttpStatus.FORBIDDEN);
 		}
 
 		UserEntity newUser = new UserEntity();
@@ -115,90 +105,78 @@ public class UserController {
 		return new ResponseEntity<UserEntity>(userRepository.save(newUser), HttpStatus.OK);
 	}
 
-	// 1.6
+	// 1.6 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/{id}")
-	public UserEntity updateUser(@PathVariable Integer id, @RequestBody UserEntity updUser) {
+	public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody UserEntity updUser) {
 		// get a users from DB
 		Optional<UserEntity> op = userRepository.findById(id);
-		if (op.isPresent()) {
-			if (updUser.getFirstName() != null) {
-				op.get().setFirstName(updUser.getFirstName());
-			}
-			if (updUser.getLastName() != null) {
-				op.get().setLastName(updUser.getLastName());
-			}
-			if (updUser.getEmail() != null) {
-				op.get().setEmail(updUser.getEmail());
-			}
-			if (updUser.getUsername() != null) {
-				op.get().setUsername(updUser.getUsername());
-			}
-			userRepository.save(op.get());
-			return updUser;
+		if (!op.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
-
-		return null;
+		op.get().setFirstName(updUser.getFirstName());
+		op.get().setLastName(updUser.getLastName());
+		op.get().setEmail(updUser.getEmail());
+		op.get().setUsername(updUser.getUsername());
+		return new ResponseEntity<UserEntity>(userRepository.save(op.get()), HttpStatus.OK);
 	}
 
-	// 1.7
+	// 1.7 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/change/{id}/role/{role}")
-	public UserEntity updateRole(@PathVariable Integer id, @PathVariable ERole role) {
+	public ResponseEntity<?> updateRole(@PathVariable Integer id, @PathVariable ERole role) {
 		// get a users from DB
 		Optional<UserEntity> op = userRepository.findById(id);
-		if (op.isPresent()) {
-			// if id exists return user with updated field
-			op.get().setUserRole(role);
-			return userRepository.save(op.get());
+		if (!op.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
-		return null;
+		// if id exists return user with updated field
+		op.get().setUserRole(role);
+		return new ResponseEntity<UserEntity>(userRepository.save(op.get()), HttpStatus.OK);
 	}
 
-	// 1.8
+	// 1.8 --> T5 
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/changePassword/{id}")
-	public UserEntity updatePassword(@RequestParam String old_password, @RequestParam String new_password,
+	public ResponseEntity<?> updatePassword(@RequestParam String old_password, @RequestParam String new_password,
 			@PathVariable Integer id) {
 		// get a users from DB
 		Optional<UserEntity> op = userRepository.findById(id);
-		if (op.isPresent()) {
+		if (!op.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
 		// if id exists return user with updated field
 		if (op.get().getPassword().equals(old_password)) {
 			op.get().setPassword(new_password);
-			userRepository.save(op.get());
-			return op.get();
+			return new ResponseEntity<UserEntity>(userRepository.save(op.get()), HttpStatus.OK);
 		}
-		return null;
+		return new ResponseEntity<RESTError>(new RESTError(464, "Password not correct."), HttpStatus.NO_CONTENT);
 	}
 
-	// 1.9
+	// 1.9 --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
-	public UserEntity deleteUser(@PathVariable Integer id) {
+	public ResponseEntity<?> deleteUser(@PathVariable Integer id) {
 		// get a users from DB
 		Optional<UserEntity> op = userRepository.findById(id);
-		if (op.isPresent()) {
+		if (!op.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(4, "No users in database."), HttpStatus.NO_CONTENT);
 		}
-		// if id exists return user with updated field
 		userRepository.delete(op.get());
-		return op.get();
+		return new ResponseEntity<UserEntity>(op.get(), HttpStatus.OK);
 	}
 
 	// 1.10 / bolje resenje je filtriranje sa @RequestParams za sva polja i
-	// koriscenje /users kao path
+	// koriscenje /users kao path --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/by_username")
-	public UserEntity getByUsername(@RequestParam String username) {
+	public ResponseEntity<?> getByUsername(@RequestParam String username) {
 		// get a users from DB
 		Optional<UserEntity> op = userRepository.findByUsername(username);
-		if (op.isPresent()) {
-			return op.get();
+		if (!op.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(4, "No user with requested username in database."),
+					HttpStatus.NO_CONTENT);
 		}
-		return null;
+		return new ResponseEntity<UserEntity>(op.get(), HttpStatus.OK);
 	}
-
-	// -------------------------------------------------------------------------------------
-
 }

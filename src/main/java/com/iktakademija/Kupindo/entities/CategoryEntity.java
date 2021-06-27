@@ -12,10 +12,12 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Version;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.iktakademija.Kupindo.security.Views;
 
@@ -29,20 +31,22 @@ public class CategoryEntity {
 	@JsonView(Views.Public.class)
 	private Integer id;
 	
+	@NotBlank(message = "Category name must be provided.")
+	@NotNull(message = "Category name must be provided.")
 	@Column(nullable = false)
 	@JsonView(Views.Public.class)
 	private String categoryName;
 	
 	@Column(nullable = false)
 	@JsonView(Views.Public.class)
+	@Size(max = 50, message = "Description must be maximum {max} characters long.")
 	private String categoryDescription;
 	
 	@JsonView(Views.Public.class)
 	@Version
 	private Integer version;
 	
-	@JsonIgnore
-	@JsonBackReference(value = "6")
+	@JsonManagedReference(value = "6")
 	@OneToMany(mappedBy = "category", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
 	@JsonView(Views.Public.class)
 	private List<OfferEntity> offers = new ArrayList<>();

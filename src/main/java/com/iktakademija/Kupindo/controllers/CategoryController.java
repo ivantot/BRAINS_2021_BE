@@ -3,6 +3,8 @@ package com.iktakademija.Kupindo.controllers;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +36,7 @@ public class CategoryController {
 
 	private BillService billService;
 
-	// 2.3 -- T5
+	// 2.3 --> T5
 	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "")
 	public ResponseEntity<?> getCategories() {
@@ -47,80 +49,76 @@ public class CategoryController {
 		return new ResponseEntity<List<CategoryEntity>>(categoryEntity, HttpStatus.OK);
 	}
 
-	// 2.4
+	// 2.4 --> T6
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.POST, value = "")
-	public CategoryEntity addCategory(@RequestBody CategoryEntity category) {
+	public ResponseEntity<?> addCategory(@Valid @RequestBody CategoryEntity category) {
 		// add a new category with a next ID
 		CategoryEntity categoryEntity = new CategoryEntity();
 		categoryEntity.setCategoryName(category.getCategoryName());
 		categoryEntity.setCategoryDescription(category.getCategoryDescription());
-		return categoryRepository.save(categoryEntity);
+		return new ResponseEntity<CategoryEntity>(categoryRepository.save(categoryEntity), HttpStatus.OK);
 	}
 
-	// 2.5
+	// 2.5 --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/{id}")
-	public CategoryEntity editCategory(@PathVariable Integer id, @RequestBody CategoryEntity newCategory) {
+	public ResponseEntity<?> editCategory(@PathVariable Integer id, @RequestBody CategoryEntity newCategory) {
 		// get Category by id from db
 		Optional<CategoryEntity> categoryEntity = categoryRepository.findById(id);
-		if (categoryEntity.isPresent()) {
-			// edit a category according the id from path and return the modified value
-			if (newCategory.getCategoryDescription() != null) {
-				categoryEntity.get().setCategoryDescription(newCategory.getCategoryDescription());
-			}
-			if (newCategory.getCategoryName() != null) {
-				categoryEntity.get().setCategoryName(newCategory.getCategoryName());
-			}
-			return categoryRepository.save(categoryEntity.get());
-		}
-		return null;
-	}
-	/*
-	// 2.6
-	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
-	public CategoryEntity deleteEntity(@PathVariable Integer id) {
-		// get Category by id from db
-		Optional<CategoryEntity> categoryEntity = categoryRepository.findById(id);
-		if (categoryEntity.isPresent()) {
-			// check if id exists for categories, if so, return a category that got removed,
-			// otherwise
-			// return null
-			categoryRepository.delete(categoryEntity.get());
-			return categoryEntity.get();
-		}
-		return null;
-	}
-	 */
+		if (!categoryEntity.isPresent()) {
 
-	// 2.6
+			return new ResponseEntity<RESTError>(new RESTError(3435, "Category not in database."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		categoryEntity.get().setCategoryDescription(newCategory.getCategoryDescription());
+		categoryEntity.get().setCategoryName(newCategory.getCategoryName());
+		return new ResponseEntity<CategoryEntity>(categoryRepository.save(categoryEntity.get()), HttpStatus.OK);
+
+	}
+
+	// 2.6 --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
-	public CategoryEntity deleteEntity(@PathVariable Integer id) {
+	public ResponseEntity<?> deleteEntity(@PathVariable Integer id) {
 		// get Category by id from db
 		Optional<CategoryEntity> categoryEntity = categoryRepository.findById(id);
-		if (categoryEntity.isPresent()) {
-			// check if id exists for categories, if so, return a category that got removed,
-			// otherwise
-			// return null
-			if (!billService.categoryInBillsExists(id) || !offerService.categoryInOffersExists(id)) {
-				categoryRepository.delete(categoryEntity.get());
-				return categoryEntity.get();
-			}
+		if (!categoryEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(3435, "Category not in database."),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		if (billService.categoryInBillsExists(id)) {
+			return new ResponseEntity<RESTError>(
+					new RESTError(3435,
+							"There are bills related to category, take care of bills before deleting category."),
+					HttpStatus.BAD_REQUEST);
+
+		}
+
+		if (offerService.categoryInOffersExists(id)) {
+			return new ResponseEntity<RESTError>(
+					new RESTError(3435,
+							"There are offers related to category, take care of offers before deleting category."),
+					HttpStatus.BAD_REQUEST);
+
+		}
+		categoryRepository.delete(categoryEntity.get());
+		return new ResponseEntity<CategoryEntity>(categoryEntity.get(), HttpStatus.OK);
 	}
 
-	// 2.7
+	// 2.7 --> T5
 	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/{id}")
-	public CategoryEntity getById(@PathVariable Integer id) {
+	public ResponseEntity<?> getById(@PathVariable Integer id) {
 		// get Category by id from db
 		Optional<CategoryEntity> categoryEntity = categoryRepository.findById(id);
-		if (categoryEntity.isPresent()) {
-			return categoryEntity.get();
+		if (!categoryEntity.isPresent()) {
+
+			return new ResponseEntity<RESTError>(new RESTError(3435, "Category not in database."),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		return new ResponseEntity<CategoryEntity>(categoryEntity.get(), HttpStatus.OK);
 	}
 
 }

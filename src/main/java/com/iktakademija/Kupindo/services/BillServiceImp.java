@@ -61,6 +61,7 @@ public class BillServiceImp implements BillService {
 		List<BillEntity> bills = billRepository.findAllByOffer(offerEntity.get());
 		for (BillEntity billEntity : bills) {
 			billEntity.setPaymentCanceled(true);
+			billRepository.save(billEntity);
 		}
 	}
 

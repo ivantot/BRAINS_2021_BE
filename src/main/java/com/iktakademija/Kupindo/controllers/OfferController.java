@@ -1,9 +1,11 @@
 package com.iktakademija.Kupindo.controllers;
 
 import java.io.IOException;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+
+import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.annotation.JsonView;
-import com.iktakademija.Kupindo.entities.BillEntity;
 import com.iktakademija.Kupindo.entities.CategoryEntity;
 import com.iktakademija.Kupindo.entities.OfferEntity;
 import com.iktakademija.Kupindo.repositories.CategoryRepository;
@@ -60,189 +61,209 @@ public class OfferController {
 		return new ResponseEntity<List<OfferEntity>>(offers, HttpStatus.OK);
 	}
 
-	// 3.4
+	// 3.4 -- T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.POST, value = "")
-	public OfferEntity addOffer(@RequestBody OfferEntity newOffer) {
+	public ResponseEntity<?> addOffer(@RequestBody OfferEntity newOffer) {
 		OfferEntity offerEntity = new OfferEntity();
 		offerEntity.setOfferName(newOffer.getOfferName());
 		offerEntity.setOfferDescription(newOffer.getOfferDescription());
 		offerEntity.setRegularPrice(newOffer.getRegularPrice());
-		offerEntity.setOfferCreated(new Date()); // now!
+		offerEntity.setOfferCreated(LocalDate.now()); // now!
 		offerEntity.setImagePath(newOffer.getImagePath());
 		offerEntity.setCategory(newOffer.getCategory());
 		offerEntity.setUser(newOffer.getUser());
 		offerEntity.setAvailableOffers(1);// set min required available offers
 		offerEntity.setBoughtOffers(0);// set min required available offers
 		offerEntity.setOfferStatus(EOfferStatus.WAIT_FOR_APPROVING);// default status
-		return offerRepository.save(offerEntity);
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity), HttpStatus.OK);
 	}
 
-	// 3.5
+	// 3.5 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/{id}")
-	public OfferEntity editOffer(@PathVariable Integer id, @RequestBody OfferEntity updOffer) {
+	public ResponseEntity<?> editOffer(@PathVariable Integer id, @Valid @RequestBody OfferEntity updOffer) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
-		if (offerEntity.isPresent()) {
-			// modify offer and return if existing, otherwise null; also check if updOffer
-			// has nulls to avoid updating all fields
-			if (updOffer.getOfferName() != null) {
-				offerEntity.get().setOfferName(updOffer.getOfferName());
-			}
-			if (updOffer.getOfferDescription() != null) {
-				offerEntity.get().setOfferDescription(updOffer.getOfferDescription());
-			}
-			if (updOffer.getRegularPrice() != null) {
-				offerEntity.get().setRegularPrice(updOffer.getRegularPrice());
-			}
-			if (updOffer.getActionPrice() != null) {
-				offerEntity.get().setActionPrice(updOffer.getActionPrice());
-			}
-			if (updOffer.getAvailableOffers() != null) {
-				offerEntity.get().setAvailableOffers(updOffer.getAvailableOffers());
-			}
-			if (updOffer.getBoughtOffers() != null) {
-				offerEntity.get().setBoughtOffers(updOffer.getBoughtOffers());
-			}
-			if (updOffer.getImagePath() != null) {
-				offerEntity.get().setImagePath(updOffer.getImagePath());
-			}
-			return offerRepository.save(offerEntity.get());
+
+		if (!offerEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+
+		offerEntity.get().setOfferName(updOffer.getOfferName());
+		offerEntity.get().setOfferDescription(updOffer.getOfferDescription());
+		offerEntity.get().setRegularPrice(updOffer.getRegularPrice());
+		offerEntity.get().setActionPrice(updOffer.getActionPrice());
+		offerEntity.get().setAvailableOffers(updOffer.getAvailableOffers());
+		offerEntity.get().setBoughtOffers(updOffer.getBoughtOffers());
+		offerEntity.get().setImagePath(updOffer.getImagePath());
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity.get()), HttpStatus.OK);
+
 	}
 
-	// 3.6
+	// 3.6 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.DELETE, value = "/{id}")
-	public OfferEntity deleteUser(@PathVariable Integer id) {
+	public ResponseEntity<?> deleteOffer(@PathVariable Integer id) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
 		if (offerEntity.isPresent()) {
-			// delete offer if existing, otherwise null
+			// delete offer if existing, otherwise Error
 			offerRepository.delete(offerEntity.get());
-			return offerEntity.get();
+			return new ResponseEntity<OfferEntity>(offerEntity.get(), HttpStatus.OK);
 		}
-		return null;
+		return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."), HttpStatus.BAD_REQUEST);
 	}
 
-	// 3.7
+	// 3.7 --> T5
 	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/{id}")
-	public OfferEntity getByID(@PathVariable Integer id) {
+	public ResponseEntity<?> getByID(@PathVariable Integer id) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
 		if (offerEntity.isPresent()) {
-			return offerEntity.get();
+			return new ResponseEntity<OfferEntity>(offerEntity.get(), HttpStatus.OK);
 		}
-		return null;
+		return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."), HttpStatus.BAD_REQUEST);
 	}
 
-	// 3.8
+	// 3.8 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "changeOffer/{id}/status/{status}")
-	public OfferEntity editOffer(@PathVariable Integer id, @PathVariable EOfferStatus status) {
+	public ResponseEntity<?> editOffer(@PathVariable Integer id, @PathVariable EOfferStatus status) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
-		if (offerEntity.isPresent()) {
-			// modify offer and return if existing, otherwise null
-			offerEntity.get().setOfferStatus(status);
-			if (status == EOfferStatus.EXPIRED) {
-				billService.cancelAllBillsForExpiredOffer(offerEntity);
-			}
-			return offerRepository.save(offerEntity.get());
+		if (!offerEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		offerEntity.get().setOfferStatus(status);
+		if (status == EOfferStatus.EXPIRED) {
+			billService.cancelAllBillsForExpiredOffer(offerEntity);
+		}
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity.get()), HttpStatus.OK);
 	}
 
-	// 3.9
+	// 3.9 --> T5
 	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/findByPrice/{price1}/and/{price2}")
-	public List<OfferEntity> withinRange(@PathVariable Double price1, @PathVariable Double price2) {
-		return offerRepository.findByRegularPriceBetweenOrderByRegularPriceAsc(price1, price2);
+	public ResponseEntity<?> withinRange(@PathVariable Double price1, @PathVariable Double price2) {
+		return new ResponseEntity<List<OfferEntity>>(
+				offerRepository.findByRegularPriceBetweenOrderByRegularPriceAsc(price1, price2), HttpStatus.OK);
 	}
 
-	// 3.4* --> 2.3
+	// 3.4* --> 2.3 --> T5 --> T6 
 	@JsonView(Views.Private.class)
-	@RequestMapping(method = RequestMethod.POST, value = "/{categoryId}/seller/{sellerId}")
-	public OfferEntity addOfferRevisited(@RequestBody OfferEntity newOffer, @PathVariable Integer categoryId,
-			@PathVariable Integer sellerId) {
-		if (userRepository.findById(sellerId).get().getUserRole().equals(ERole.ROLE_SELLER)) {
+	@RequestMapping(method = RequestMethod.POST, value = "/{categoryID}/seller/{sellerID}")
+	public ResponseEntity<?> addOfferRevisited(@Valid @RequestBody OfferEntity newOffer,
+			@PathVariable Integer categoryID, @PathVariable Integer sellerID) {
+
+		if (userRepository.findById(sellerID).isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(1209, "No specified user in database."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		if (categoryRepository.findById(categoryID).isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(1210, "No specified category in database."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		if (userRepository.findById(sellerID).get().getUserRole().equals(ERole.ROLE_SELLER)) {
 			OfferEntity offerEntity = new OfferEntity();
 			offerEntity.setOfferName(newOffer.getOfferName());
 			offerEntity.setOfferDescription(newOffer.getOfferDescription());
 			offerEntity.setRegularPrice(newOffer.getRegularPrice());
-			offerEntity.setOfferCreated(new Date()); // now!
+			offerEntity.setActionPrice(newOffer.getActionPrice());
+			offerEntity.setOfferCreated(LocalDate.now()); // now!
 			offerEntity.setImagePath(newOffer.getImagePath());
-			offerEntity.setCategory(categoryRepository.findById(categoryId).get());
-			offerEntity.setUser(userRepository.findById(sellerId).get());
-			if (newOffer.getBoughtOffers() != null) {
-				offerEntity.setAvailableOffers(newOffer.getBoughtOffers());
+			offerEntity.setCategory(categoryRepository.findById(categoryID).get());
+			offerEntity.setUser(userRepository.findById(sellerID).get());
+			if (newOffer.getAvailableOffers() != null) {
+				offerEntity.setAvailableOffers(newOffer.getAvailableOffers());
 			} else {
 				offerEntity.setAvailableOffers(1);// set min required available offers
 			}
 			offerEntity.setBoughtOffers(0);
 			offerEntity.setOfferStatus(EOfferStatus.WAIT_FOR_APPROVING);// default status
-			return offerRepository.save(offerEntity);
+			return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity), HttpStatus.OK);
 		}
-		return null;
+		return new ResponseEntity<RESTError>(new RESTError(555, "Selected user in not a seller!"),
+				HttpStatus.BAD_REQUEST);
 	}
 
-	// 3.5* --> 2.4
+	// 3.5* --> 2.4 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.PUT, value = "/{offerId}/category/{categoryId}")
-	public OfferEntity editOfferCategory(@PathVariable Integer offerId, @PathVariable Integer categoryId) {
+	public ResponseEntity<?> editOfferCategory(@PathVariable Integer offerId, @PathVariable Integer categoryId) {
 		Optional<OfferEntity> offerEntity = offerRepository.findById(offerId);
-		if (offerEntity.isPresent()) {
-			Optional<CategoryEntity> categoryEntity = categoryRepository.findById(categoryId);
-			// modify offer and return if existing, otherwise null; also check if updOffer
-			// has nulls to avoid updating all fields
-			if (categoryEntity.isPresent()) {
-				offerEntity.get().setCategory(categoryEntity.get());
-				return offerRepository.save(offerEntity.get());
-			}
+		if (!offerEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		Optional<CategoryEntity> categoryEntity = categoryRepository.findById(categoryId);
+		// modify offer and return if existing, otherwise null; also check if updOffer
+		// has nulls to avoid updating all fields
+		if (!categoryEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(1210, "No specified category in database."),
+					HttpStatus.BAD_REQUEST);
+		}
+		offerEntity.get().setCategory(categoryEntity.get());
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity.get()), HttpStatus.OK);
 	}
 
-	// 2.1 service
+	// 2.1 service --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/updateAvailableOffers/{id}", method = RequestMethod.PUT)
-	public String updateAvailableOffers(@PathVariable Integer id, @RequestParam Integer boughtOffers,
+	public ResponseEntity<?> updateAvailableOffers(@PathVariable Integer id, @RequestParam Integer boughtOffers,
 			@RequestParam Integer availableOffers) {
 		if (id == null || boughtOffers == null || availableOffers == null) {
-			return null;
+			return new ResponseEntity<RESTError>(
+					new RESTError(65568, "All fields are mandatory, please make sure all values are provided."),
+					HttpStatus.BAD_REQUEST);
 		}
-		String retVal = offerService.updateAvailableOffers(id, boughtOffers, availableOffers);
-		return retVal;
+		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
+		if (!offerEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		offerEntity.get().setAvailableOffers(availableOffers);
+		offerEntity.get().setBoughtOffers(boughtOffers);
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offerEntity.get()), HttpStatus.OK);
 	}
 
-	// 3.2
+	// 3.2 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(method = RequestMethod.POST, path = "/uploadImage/{id}")
-	public OfferEntity uploadImageForOffer(@RequestParam(name = "file") MultipartFile file,
+	public ResponseEntity<?> uploadImageForOffer(@RequestParam(name = "file") MultipartFile file,
 			@PathVariable(name = "id") Integer id) {
 
 		if (id == null || file == null)
-			return null;
+			return new ResponseEntity<RESTError>(
+					new RESTError(65568, "All fields are mandatory, please make sure all values are provided."),
+					HttpStatus.BAD_REQUEST);
 
 		// Check do offer exists and get it. Otherwise return null
 		Optional<OfferEntity> op = offerRepository.findById(id);
-		if (op.isEmpty())
-			return null;
+		if (op.isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(34354, "Offer not in database."),
+					HttpStatus.BAD_REQUEST);
+		}
 		OfferEntity offer = op.get();
 		// chack file format and validate image	
 		String retVal = null;
 		try {
 			retVal = offerService.uploadOfferImage(file);
-			if (retVal == null || retVal == "")
-				return offer;
+			if (retVal == null || retVal == "") {
+				return new ResponseEntity<RESTError>(new RESTError(343555, "Problems with writing file to disk."),
+						HttpStatus.NOT_FOUND);
+			}
 			offer.setImagePath(retVal);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		// Return service retVal
-		offerRepository.save(offer);
-		return offer;
+		return new ResponseEntity<OfferEntity>(offerRepository.save(offer), HttpStatus.OK);
 	}
 
+	// set prices --> T5
 	@RequestMapping(method = RequestMethod.PUT, value = "/setPrices/{offerID}")
 	public ResponseEntity<?> setPrices(@PathVariable Integer offerID, @RequestParam Double regularPrice,
 			@RequestParam Double actionPrice) {

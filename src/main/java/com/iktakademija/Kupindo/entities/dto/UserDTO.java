@@ -1,17 +1,31 @@
 package com.iktakademija.Kupindo.entities.dto;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+import javax.validation.constraints.Size;
+
 public class UserDTO {
 
+	@NotNull(message = "Cannot be null.")
 	private String firstName;
 
+	@NotNull(message = "Cannot be null.")
 	private String lastName;
 
+	@NotNull(message = "Cannot be null.")
+	@NotBlank(message = "Username mustn't be blank.")
+	@Size(min = 5, max = 20, message = "Username must be between {min} and {max} characters long.")
 	private String username;
 
+	@NotNull(message = "Cannot be null.")
+	@Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{5,}$", message = "Pasword is not valid, it must contain at least 5 characters, both numbers and letters must be used.")
 	private String password;
 
+	@NotNull(message = "Cannot be null.")
 	private String repeatedPassword;
-	
+
+	@NotNull(message = "Cannot be null.")
 	private String email;
 
 	public UserDTO() {

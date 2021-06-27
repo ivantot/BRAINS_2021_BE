@@ -4,11 +4,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +22,7 @@ import com.iktakademija.Kupindo.entities.BillEntity;
 import com.iktakademija.Kupindo.entities.CategoryEntity;
 import com.iktakademija.Kupindo.entities.OfferEntity;
 import com.iktakademija.Kupindo.entities.UserEntity;
+import com.iktakademija.Kupindo.entities.dto.BillDTO;
 import com.iktakademija.Kupindo.entities.dto.ReportDTO;
 import com.iktakademija.Kupindo.entities.dto.ReportItemDTO;
 import com.iktakademija.Kupindo.repositories.BillRepository;
@@ -88,43 +92,6 @@ public class BillController {
 		return new ResponseEntity<List<BillEntity>>(bills, HttpStatus.OK);
 	}
 
-	/*
-		// 3.6 --> creating
-		@RequestMapping(value = "/{offerId}/buyer/{buyerId}", method = RequestMethod.POST)
-		public BillEntity createBill(@PathVariable Integer offerId, @PathVariable Integer buyerId) {
-			BillEntity billEntity = new BillEntity();
-			Optional<UserEntity> buyerEntity = userRepository.findById(buyerId);
-			Optional<OfferEntity> offerEntity = offerRepository.findById(offerId);
-			if (offerEntity.isPresent() && buyerEntity.isPresent()) {
-				billEntity.setBillCreated(new Date());
-				billEntity.setPaymentCanceled(false);// default state
-				billEntity.setPaymentMade(false);// default state
-				billEntity.setUser(buyerEntity.get());
-				billEntity.setOffer(offerEntity.get());
-				return billRepository.save(billEntity);
-			}
-			return null;
-		}
-	
-		// 3.6 --> updating
-		@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-		public BillEntity updateBill(@PathVariable Integer id, @RequestParam Boolean paymentMade,
-				@RequestParam Boolean paymentCanceled) {
-			// get from db using optional
-			Optional<BillEntity> billEntity = billRepository.findById(id);
-			if (billEntity.isPresent()) {
-				// do magic
-				if (paymentMade != null) {
-					billEntity.get().setPaymentMade(paymentMade);
-				}
-				if (paymentCanceled != null) {
-					billEntity.get().setPaymentCanceled(paymentCanceled);
-				}
-				return billRepository.save(billEntity.get());
-			}
-			return null;
-		}
-	*/
 	// 3.6 --> deleting -- T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
@@ -155,129 +122,83 @@ public class BillController {
 		return new ResponseEntity<List<BillEntity>>(billRepository.findByUser(buyer), HttpStatus.OK);
 	}
 
-	// 3.8
+	// 3.8 --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(value = "/findByCategory/{categoryId}", method = RequestMethod.GET)
-	public Optional<BillEntity> getBillsByCategory(@PathVariable Integer categoryId) {
+	public ResponseEntity<?> getBillsByCategory(@PathVariable Integer categoryId) {
 		Optional<CategoryEntity> category = categoryRepository.findById(categoryId);
 		Optional<OfferEntity> offers = offerRepository.findByCategory(category);
-		return billRepository.findByOffer(offers);
+		return new ResponseEntity<Optional<BillEntity>>(billRepository.findByOffer(offers), HttpStatus.OK);
 	}
 
-	// 3.9
+	// 3.9 --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(value = "/findByDate/{date1}/and/{date2}", method = RequestMethod.GET)
-	public List<BillEntity> findByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date1,
+	public ResponseEntity<?> findByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date1,
 			@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date2) {
-		return billService.getBillsByDate(date1, date2);
+		return new ResponseEntity<List<BillEntity>>(billService.getBillsByDate(date1, date2), HttpStatus.OK);
 	}
 
-	/*
-	// 3.9
-	@RequestMapping(value = "/findByDate/{startDate}/and/{endDate}", method = RequestMethod.GET)
-	public Optional<BillEntity> findByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date startDate,
-			@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date endDate) {
-		return billRepository.findByBillCreatedBetweenOrderByBillCreatedAsc(startDate, endDate);
-	}
-	
-	// 3.6 --> creating --> 5.1 if used disable previous version of 3.6
-	@RequestMapping(value = "/{offerId}/buyer/{buyerId}", method = RequestMethod.POST)
-	public BillEntity createBillReviseted(@PathVariable Integer offerId, @PathVariable Integer buyerId) {
-		BillEntity billEntity = new BillEntity();
-		Optional<UserEntity> buyerEntity = userRepository.findById(buyerId);
-		Optional<OfferEntity> offerEntity = offerRepository.findById(offerId);
-		if (offerEntity.isPresent() && buyerEntity.isPresent() && offerEntity.get().getAvailableOffers() > 0 && buyerEntity.get().getUserRole().equals(ERole.ROLE_CUSTOMER)) {
-			billEntity.setBillCreated(new Date());
-			billEntity.setPaymentCanceled(false);// default state
-			billEntity.setPaymentMade(false);// default state
-			billEntity.setUser(buyerEntity.get());
-			billEntity.setOffer(offerEntity.get());
-			offerEntity.get().setAvailableOffers(offerEntity.get().getAvailableOffers()-1);
-			offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers()+1);
-			offerRepository.save(offerEntity.get());
-			return billRepository.save(billEntity);
+	// 3.6 --> creating --> 5.1 if used disable previous version of 3.6 --> 2.2 controllers --> refactor T6 validation
+	@JsonView(Views.Private.class)
+	@RequestMapping(value = "/{offerID}/buyer/{buyerID}", method = RequestMethod.POST)
+	public ResponseEntity<?> createBillReviseted(@Valid @RequestBody BillDTO bill, @PathVariable Integer offerID,
+			@PathVariable Integer buyerID) {
+
+		if (userRepository.findById(buyerID).isEmpty() || offerRepository.findById(offerID).isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(12345, "User or offer not present in database"),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+
+		BillEntity billEntity = new BillEntity();
+		Optional<UserEntity> buyerEntity = userRepository.findById(buyerID);
+		Optional<OfferEntity> offerEntity = offerRepository.findById(offerID);
+
+		if (!buyerEntity.get().getUserRole().equals(ERole.ROLE_CUSTOMER)) {
+			return new ResponseEntity<RESTError>(new RESTError(1234577, "User must be a customer."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		billEntity.setBillCreated(bill.getBillCreated());
+		billEntity.setUser(buyerEntity.get());
+		billEntity.setOffer(offerEntity.get());
+		billEntity.setPaymentCanceled(bill.getPaymentCanceled());
+		billEntity.setPaymentMade(bill.getPaymentMade());
+		offerEntity.get().setAvailableOffers(offerEntity.get().getAvailableOffers() - 1);
+		offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers() + 1);
+		offerRepository.save(offerEntity.get());
+		return new ResponseEntity<BillEntity>(billRepository.save(billEntity), HttpStatus.OK);
 	}
-	
-	// 3.6 --> updating --> 5.2 if used disable previous version of 3.6
+
+	// 3.6 --> updating --> 5.2 if used disable previous version of 3.6 --> 2.3 controllers --> T5
+	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-	public BillEntity updateBillRevisited(@PathVariable Integer id, @RequestParam Boolean paymentMade,
+	public ResponseEntity<?> updateBillRevisited(@PathVariable Integer id, @RequestParam Boolean paymentMade,
 			@RequestParam Boolean paymentCanceled) {
 		// get from db using optional
 		Optional<BillEntity> billEntity = billRepository.findById(id);
 		// get offer using bill entity
-		if (billEntity.isPresent()) {
-			Optional<OfferEntity> offerEntity = offerRepository.findById(billEntity.get().getOffer().getId());
-			// do magic
-			if (paymentMade != null) {
+		if (!billEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(386, "Bill is not in the database."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		Optional<OfferEntity> offerEntity = offerRepository.findById(billEntity.get().getOffer().getId());
+		// do magic
+		if (paymentMade != null) {
+			if (billEntity.get().getPaymentMade() == false && paymentMade == true) {
 				billEntity.get().setPaymentMade(paymentMade);
-			}
-			if (paymentCanceled == true) {
-				billEntity.get().setPaymentCanceled(paymentCanceled);
-				offerEntity.get().setAvailableOffers(offerEntity.get().getAvailableOffers()+1);
-				offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers()-1);
-				offerRepository.save(offerEntity.get());
-			}
-			return billRepository.save(billEntity.get());
+				voucherService.createVoucherAfterPayment(billEntity.get());
+			} else
+				billEntity.get().setPaymentMade(paymentMade);
+
 		}
-		return null;
-	}
-	*/
-	// 3.6 --> creating --> 5.1 if used disable previous version of 3.6 --> 2.2 controllers
-	@JsonView(Views.Private.class)
-	@RequestMapping(value = "/{offerId}/buyer/{buyerId}", method = RequestMethod.POST)
-	public BillEntity createBillReviseted(@PathVariable Integer offerId, @PathVariable Integer buyerId,
-			@RequestParam Integer availableOffers, @RequestParam Integer boughtOffers) {
-		BillEntity billEntity = new BillEntity();
-		Optional<UserEntity> buyerEntity = userRepository.findById(buyerId);
-		Optional<OfferEntity> offerEntity = offerRepository.findById(offerId);
-		if (offerEntity.isPresent() && buyerEntity.isPresent() && offerEntity.get().getAvailableOffers() > 0
-				&& buyerEntity.get().getUserRole().equals(ERole.ROLE_CUSTOMER)) {
-			billEntity.setBillCreated(LocalDate.now());
-			billEntity.setPaymentCanceled(false);// default state
-			billEntity.setPaymentMade(false);// default state
-			billEntity.setUser(buyerEntity.get());
-			billEntity.setOffer(offerEntity.get());
-			//offerEntity.get().setAvailableOffers(offerEntity.get().getAvailableOffers()-1);
-			//offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers()+1);
-			offerService.updateAvailableOffers(offerId, boughtOffers, availableOffers);
+		if (paymentCanceled == true) {
+			billEntity.get().setPaymentCanceled(paymentCanceled);
+			offerService.updateAvailableOffers(offerEntity.get().getId());
 			offerRepository.save(offerEntity.get());
-			return billRepository.save(billEntity);
 		}
-		return null;
-	}
-
-	// 3.6 --> updating --> 5.2 if used disable previous version of 3.6 --> 2.3 controllers
-	@JsonView(Views.Private.class)
-	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-	public BillEntity updateBillRevisited(@PathVariable Integer id, @RequestParam Boolean paymentMade,
-			@RequestParam Boolean paymentCanceled, @RequestParam Integer availableOffers,
-			@RequestParam Integer boughtOffers) {
-		// get from db using optional
-		Optional<BillEntity> billEntity = billRepository.findById(id);
-		// get offer using bill entity
-		if (billEntity.isPresent()) {
-			Optional<OfferEntity> offerEntity = offerRepository.findById(billEntity.get().getOffer().getId());
-			// do magic
-			if (paymentMade != null) {
-				if (billEntity.get().getPaymentMade() == false && paymentMade == true) {
-					billEntity.get().setPaymentMade(paymentMade);
-					voucherService.createVoucherAfterPayment(billEntity.get());
-				} else
-					billEntity.get().setPaymentMade(paymentMade);
-
-			}
-			if (paymentCanceled == true) {
-				billEntity.get().setPaymentCanceled(paymentCanceled);
-				//offerEntity.get().setAvailableOffers(offerEntity.get().getAvailableOffers()+1);
-				//offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers()-1);
-				offerService.updateAvailableOffers(offerEntity.get().getId(), boughtOffers, availableOffers);
-				offerRepository.save(offerEntity.get());
-			}
-			return billRepository.save(billEntity.get());
-		}
-		return null;
+		return new ResponseEntity<BillEntity>(billRepository.save(billEntity.get()), HttpStatus.OK);
 	}
 
 	// 3.4 -- T5

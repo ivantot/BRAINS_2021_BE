@@ -4,10 +4,13 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -17,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.iktakademija.Kupindo.entities.OfferEntity;
 import com.iktakademija.Kupindo.entities.UserEntity;
 import com.iktakademija.Kupindo.entities.VoucherEntity;
+import com.iktakademija.Kupindo.entities.dto.VoucherDTO;
 import com.iktakademija.Kupindo.repositories.OfferRepository;
 import com.iktakademija.Kupindo.repositories.UserRepository;
 import com.iktakademija.Kupindo.repositories.VoucherRepository;
@@ -35,13 +39,13 @@ public class VoucherController {
 	@Autowired
 	private OfferRepository offerRepository;
 
-	// 4.3
+	// 4.3 --> T5
 	@JsonView(Views.Public.class)
 	@RequestMapping(method = RequestMethod.GET, path = "/public")
 	public ResponseEntity<?> getAllVouchersPublic() {
 		List<VoucherEntity> vouchers = (List<VoucherEntity>) voucherRepository.findAll();
 		if (vouchers.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(5, "No vouchers in database"), HttpStatus.NO_CONTENT);
+			return new ResponseEntity<RESTError>(new RESTError(5, "No vouchers in database"), HttpStatus.BAD_REQUEST);
 		}
 		return new ResponseEntity<List<VoucherEntity>>(vouchers, HttpStatus.OK);
 	}
@@ -51,7 +55,7 @@ public class VoucherController {
 	public ResponseEntity<?> getAllVouchersPrivate() {
 		List<VoucherEntity> vouchers = (List<VoucherEntity>) voucherRepository.findAll();
 		if (vouchers.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(5, "No vouchers in database"), HttpStatus.NO_CONTENT);
+			return new ResponseEntity<RESTError>(new RESTError(5, "No vouchers in database"), HttpStatus.BAD_REQUEST);
 		}
 		return new ResponseEntity<List<VoucherEntity>>(vouchers, HttpStatus.OK);
 	}
@@ -61,88 +65,106 @@ public class VoucherController {
 	public ResponseEntity<?> getAllVouchersAdmin() {
 		List<VoucherEntity> vouchers = (List<VoucherEntity>) voucherRepository.findAll();
 		if (vouchers.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(5, "No vouchers in database"), HttpStatus.NO_CONTENT);
+			return new ResponseEntity<RESTError>(new RESTError(5, "No vouchers in database"), HttpStatus.BAD_REQUEST);
 		}
 		return new ResponseEntity<List<VoucherEntity>>(vouchers, HttpStatus.OK);
 	}
 
-	// 4.6 --> creating
+	// 4.6 --> creating --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{offerId}/buyer/{buyerId}", method = RequestMethod.POST)
-	public VoucherEntity createVoucher(@PathVariable Integer offerId, @PathVariable Integer buyerId) {
+	public ResponseEntity<?> createVoucher(@PathVariable Integer offerId, @PathVariable Integer buyerId,
+			@Valid @RequestBody VoucherDTO voucher) {
 		VoucherEntity voucherEntity = new VoucherEntity();
 		Optional<UserEntity> buyerEntity = userRepository.findById(buyerId);
 		Optional<OfferEntity> offerEntity = offerRepository.findById(offerId);
-		if (offerEntity.isPresent() && buyerEntity.isPresent()
-				&& buyerEntity.get().getUserRole().equals(ERole.ROLE_CUSTOMER)) {
-			voucherEntity.setExpirationDate(LocalDate.now().plusDays(10));
-			voucherEntity.setIsUsed(false);// default state
-			voucherEntity.setUser(buyerEntity.get());
-			voucherEntity.setOffer(offerEntity.get());
-			return voucherRepository.save(voucherEntity);
+		if (!offerEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(99781, "Offer not present in database."),
+					HttpStatus.BAD_REQUEST);
 		}
-		return null;
+
+		if (!buyerEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(99782, "User not present in database."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		if (!buyerEntity.get().getUserRole().equals(ERole.ROLE_CUSTOMER)) {
+			return new ResponseEntity<RESTError>(new RESTError(99783, "User not registered as a customer."),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		voucherEntity.setExpirationDate(voucher.getExpirationDate());
+		voucherEntity.setIsUsed(voucher.getIsUsed());
+		voucherEntity.setUser(buyerEntity.get());
+		voucherEntity.setOffer(offerEntity.get());
+		return new ResponseEntity<VoucherEntity>(voucherRepository.save(voucherEntity), HttpStatus.OK);
 	}
 
-	// 4.6 --> updating
+	// 4.6 --> updating --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-	public VoucherEntity updateVoucher(@PathVariable Integer id, @RequestParam Boolean isUsed) {
+	public ResponseEntity<?> updateVoucher(@PathVariable Integer id, @RequestParam Boolean isUsed) {
 		// get from db using optional
 		Optional<VoucherEntity> voucherEntity = voucherRepository.findById(id);
-		if (voucherEntity.isPresent()) {
-			// do magic
-			if (isUsed != null) {
-				voucherEntity.get().setIsUsed(isUsed);
-			}
-			return voucherRepository.save(voucherEntity.get());
+		if (!voucherEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(5, "No voucher in database"), HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		voucherEntity.get().setIsUsed(isUsed);
+		return new ResponseEntity<VoucherEntity>(voucherRepository.save(voucherEntity.get()), HttpStatus.OK);
 	}
 
-	// 4.6 --> deleting
+	// 4.6 --> deleting --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-	public VoucherEntity deleteVoucher(@PathVariable Integer id) {
+	public ResponseEntity<?> deleteVoucher(@PathVariable Integer id) {
 		// get from db using optional
 		Optional<VoucherEntity> voucherEntity = voucherRepository.findById(id);
-		if (voucherEntity.isPresent()) {
-			// do magic only if isUsed == true
-			if (voucherEntity.get().getIsUsed() == true) {
-				voucherRepository.delete(voucherEntity.get());
-				return voucherEntity.get();
-			}
+		if (!voucherEntity.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(5, "No voucher in database"), HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		// do magic only if isUsed == true
+		if (!voucherEntity.get().getIsUsed() == true) {
+			return new ResponseEntity<RESTError>(
+					new RESTError(5256, "Voucher can't be removed since it hasn't been used"), HttpStatus.BAD_REQUEST);
+		}
+		if (!voucherEntity.get().getExpirationDate().isAfter(LocalDate.now())) {
+			return new ResponseEntity<RESTError>(
+					new RESTError(5256, "Voucher can't be removed since it hasn't expired yet"),
+					HttpStatus.BAD_REQUEST);
+		}
+
+		voucherRepository.delete(voucherEntity.get());
+		return new ResponseEntity<VoucherEntity>(voucherEntity.get(), HttpStatus.OK);
 	}
 
-	// 4.7
+	// 4.7 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/findByBuyer/{buyerId}", method = RequestMethod.GET)
-	public List<VoucherEntity> getVouchersByUser(@PathVariable Integer buyerId) {
+	public ResponseEntity<?> getVouchersByUser(@PathVariable Integer buyerId) {
 		Optional<UserEntity> buyer = userRepository.findById(buyerId);
-		if (buyer.isPresent()) {
-			return voucherRepository.findByUser(buyer.get());
+		if (!buyer.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(5, "No buyer in database"), HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		return new ResponseEntity<List<VoucherEntity>>(voucherRepository.findByUser(buyer.get()), HttpStatus.OK);
 	}
 
-	// 4.8
+	// 4.8 --> T5
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/findByOffer/{offerId}", method = RequestMethod.GET)
-	public List<VoucherEntity> getVouchersByOffer(@PathVariable Integer offerId) {
+	public ResponseEntity<?> getVouchersByOffer(@PathVariable Integer offerId) {
 		Optional<OfferEntity> offers = offerRepository.findById(offerId);
-		if (offers.isPresent()) {
-			return voucherRepository.findByOffer(offers.get());
+		if (!offers.isPresent()) {
+			return new ResponseEntity<RESTError>(new RESTError(678, "No offer in database"), HttpStatus.BAD_REQUEST);
 		}
-		return null;
+		return new ResponseEntity<List<VoucherEntity>>(voucherRepository.findByOffer(offers.get()), HttpStatus.OK);
 	}
 
-	// 4.9
+	// 4.9 --> T5
 	@JsonView(Views.Admin.class)
 	@RequestMapping(value = "/findNonExpiredVoucher")
-	public List<VoucherEntity> findValid(LocalDate now) {
+	public ResponseEntity<?> findValid(LocalDate now) {
 		now = LocalDate.now();
-		return voucherRepository.findByExpirationDateGreaterThanEqual(now);
+		return new ResponseEntity<List<VoucherEntity>>(voucherRepository.findByExpirationDateGreaterThanEqual(now),
+				HttpStatus.OK);
 	}
 }

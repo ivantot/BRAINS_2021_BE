@@ -12,9 +12,9 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import javax.persistence.Version;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.iktakademija.Kupindo.security.Views;
 
@@ -41,13 +41,13 @@ public class VoucherEntity {
 	@Version
 	private Integer version;
 	
-	@JsonManagedReference(value = "4")
+	@JsonBackReference(value = "4")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY) // ne stavljati json ignore kad nije lista
 	@JoinColumn(name = "offer")
 	@JsonView(Views.Private.class)
 	private OfferEntity offer;
 	
-	@JsonManagedReference(value = "3")
+	@JsonBackReference(value = "3")
 	@ManyToOne(cascade = CascadeType.REFRESH, fetch = FetchType.LAZY) // ne stavljati json ignore kad nije lista
 	@JoinColumn(name = "user")
 	@JsonView(Views.Private.class)

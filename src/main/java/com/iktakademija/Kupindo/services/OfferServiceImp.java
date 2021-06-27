@@ -31,18 +31,15 @@ public class OfferServiceImp implements OfferService {
 	private EntityManager em;
 
 	@Override
-	public String updateAvailableOffers(Integer id, Integer boughtOffers, Integer availableOffers) {
+	public String updateAvailableOffers(Integer id) {
 		// get offer by id from db
 		Optional<OfferEntity> offerEntity = offerRepository.findById(id);
 		if (!offerEntity.isPresent()) {
 			return "Offer with the required id is not in the database!";
 		}
-		// not implemented! decrement available and increment bought offer count
-		//offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers()+1);
 
-		// set bought and available offers per user input
-		offerEntity.get().setBoughtOffers(boughtOffers);
-		offerEntity.get().setAvailableOffers(availableOffers);
+		offerEntity.get().setBoughtOffers(offerEntity.get().getBoughtOffers() - 1);
+		offerEntity.get().setAvailableOffers(offerEntity.get().getAvailableOffers() + 1);
 		offerRepository.save(offerEntity.get());
 		return "Offer updated!";
 	}
@@ -74,8 +71,9 @@ public class OfferServiceImp implements OfferService {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MMM-dd");
 		String fileName = String.format("%s_%s", UUID.randomUUID().toString(), LocalDate.now().format(formatter));
 
-		Path path = Paths.get("C:\\Users\\admin\\Desktop\\Brains2021\\Spring\\kupindo\\src\\main\\java\\com\\iktakademija\\kupindo\\"
-				+ "resources\\uploads\\" + fileName + file.getOriginalFilename());
+		Path path = Paths.get(
+				"C:\\Users\\admin\\Desktop\\Brains2021\\Spring\\kupindo\\src\\main\\java\\com\\iktakademija\\kupindo\\"
+						+ "resources\\uploads\\" + fileName + file.getOriginalFilename());
 		Files.write(path, bytes);
 
 		return path.toAbsolutePath().toString();
