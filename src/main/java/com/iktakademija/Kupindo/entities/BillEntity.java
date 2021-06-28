@@ -40,7 +40,7 @@ public class BillEntity {
 	@JsonView(Views.Public.class)
 	private LocalDate billCreated;
 
-	@JsonView(Views.Public.class)
+	@JsonView(Views.Admin.class)
 	@Version
 	private Integer version;
 

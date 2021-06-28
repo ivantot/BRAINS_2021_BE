@@ -12,6 +12,6 @@ public interface OfferRepository extends CrudRepository<OfferEntity, Integer> {
 	
 	List<OfferEntity> findByRegularPriceBetweenOrderByRegularPriceAsc(Double price1, Double price2);
 	
-	Optional<OfferEntity> findByCategory(Optional<CategoryEntity> category);
+	List<OfferEntity> findAllByCategory(Optional<CategoryEntity> category);
 
 }

@@ -11,18 +11,16 @@ import com.iktakademija.Kupindo.entities.OfferEntity;
 import com.iktakademija.Kupindo.entities.UserEntity;
 
 public interface BillRepository extends CrudRepository<BillEntity, Integer> {
-	
-	List <BillEntity> findByUser(Optional<UserEntity> buyer);
+
+	List<BillEntity> findByUser(Optional<UserEntity> buyer);
+
 	/*
 	@Query("SELECT * FROM BillEntity WHERE offer IN (SELECT id FROM OfferEntity WHERE category = :categoryId")
 	*/
-	Optional <BillEntity> findByOffer(Optional<OfferEntity> offers);
-	
-	Optional <BillEntity> findByBillCreatedBetweenOrderByBillCreatedAsc(Date startDate, Date endDate);
-	
-	List <BillEntity> findAllByOffer(OfferEntity offer);
-	
+	Optional<BillEntity> findByBillCreatedBetweenOrderByBillCreatedAsc(Date startDate, Date endDate);
+
+	List<BillEntity> findAllByOffer(OfferEntity offer);
+
 	List<BillEntity> findByBillCreatedBetween(LocalDate date1, LocalDate date2);
-	
 
 }

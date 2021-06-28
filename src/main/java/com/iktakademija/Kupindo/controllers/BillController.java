@@ -1,6 +1,7 @@
 package com.iktakademija.Kupindo.controllers;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,7 +59,7 @@ public class BillController {
 	@Autowired
 	private VoucherService voucherService;
 
-	// 3.3 -- T5
+	// read @ admin
 	@JsonView(Views.Admin.class)
 	@RequestMapping(value = "/admin", method = RequestMethod.GET)
 	public ResponseEntity<?> getAllBillsAdmin() {
@@ -70,6 +71,7 @@ public class BillController {
 		return new ResponseEntity<List<BillEntity>>(bills, HttpStatus.OK);
 	}
 
+	// read @ private
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/private", method = RequestMethod.GET)
 	public ResponseEntity<?> getAllBillsPrivate() {
@@ -81,6 +83,7 @@ public class BillController {
 		return new ResponseEntity<List<BillEntity>>(bills, HttpStatus.OK);
 	}
 
+	// read @ public
 	@JsonView(Views.Public.class)
 	@RequestMapping(value = "/public", method = RequestMethod.GET)
 	public ResponseEntity<?> getAllBillsPublic() {
@@ -92,54 +95,7 @@ public class BillController {
 		return new ResponseEntity<List<BillEntity>>(bills, HttpStatus.OK);
 	}
 
-	// 3.6 --> deleting -- T5
-	@JsonView(Views.Private.class)
-	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-	public ResponseEntity<?> deleteBill(@PathVariable Integer id) {
-		// get from db using optional
-		Optional<BillEntity> billEntity = billRepository.findById(id);
-		if (billEntity.isPresent()) {
-			// do magic only if paymentCanceled == true
-			if (billEntity.get().getPaymentCanceled() == true) {
-				billRepository.delete(billEntity.get());
-				return new ResponseEntity<BillEntity>(billEntity.get(), HttpStatus.OK);
-			}
-			return new ResponseEntity<RESTError>(new RESTError(11, "Payment not cancled. bill cannot be removed"),
-					HttpStatus.BAD_REQUEST);
-		}
-		return new ResponseEntity<RESTError>(new RESTError(21, "Bill not found in database"), HttpStatus.NOT_FOUND);
-	}
-
-	// 3.7
-	@JsonView(Views.Admin.class)
-	@RequestMapping(value = "/findByBuyer/{buyerId}", method = RequestMethod.GET)
-	public ResponseEntity<?> getBillsByUser(@PathVariable Integer buyerId) {
-		Optional<UserEntity> buyer = userRepository.findById(buyerId);
-		if (buyer.isEmpty()) {
-			return new ResponseEntity<RESTError>(new RESTError(2222, "User not found, check your entry."),
-					HttpStatus.NOT_FOUND);
-		}
-		return new ResponseEntity<List<BillEntity>>(billRepository.findByUser(buyer), HttpStatus.OK);
-	}
-
-	// 3.8 --> T5
-	@JsonView(Views.Admin.class)
-	@RequestMapping(value = "/findByCategory/{categoryId}", method = RequestMethod.GET)
-	public ResponseEntity<?> getBillsByCategory(@PathVariable Integer categoryId) {
-		Optional<CategoryEntity> category = categoryRepository.findById(categoryId);
-		Optional<OfferEntity> offers = offerRepository.findByCategory(category);
-		return new ResponseEntity<Optional<BillEntity>>(billRepository.findByOffer(offers), HttpStatus.OK);
-	}
-
-	// 3.9 --> T5
-	@JsonView(Views.Admin.class)
-	@RequestMapping(value = "/findByDate/{date1}/and/{date2}", method = RequestMethod.GET)
-	public ResponseEntity<?> findByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date1,
-			@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date2) {
-		return new ResponseEntity<List<BillEntity>>(billService.getBillsByDate(date1, date2), HttpStatus.OK);
-	}
-
-	// 3.6 --> creating --> 5.1 if used disable previous version of 3.6 --> 2.2 controllers --> refactor T6 validation
+	// create
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{offerID}/buyer/{buyerID}", method = RequestMethod.POST)
 	public ResponseEntity<?> createBillReviseted(@Valid @RequestBody BillDTO bill, @PathVariable Integer offerID,
@@ -170,7 +126,7 @@ public class BillController {
 		return new ResponseEntity<BillEntity>(billRepository.save(billEntity), HttpStatus.OK);
 	}
 
-	// 3.6 --> updating --> 5.2 if used disable previous version of 3.6 --> 2.3 controllers --> T5
+	// update
 	@JsonView(Views.Private.class)
 	@RequestMapping(value = "/{id}", method = RequestMethod.PUT)
 	public ResponseEntity<?> updateBillRevisited(@PathVariable Integer id, @RequestParam Boolean paymentMade,
@@ -201,7 +157,82 @@ public class BillController {
 		return new ResponseEntity<BillEntity>(billRepository.save(billEntity.get()), HttpStatus.OK);
 	}
 
-	// 3.4 -- T5
+	// delete
+	@JsonView(Views.Private.class)
+	@RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
+	public ResponseEntity<?> deleteBill(@PathVariable Integer id) {
+		// get from db using optional
+		Optional<BillEntity> billEntity = billRepository.findById(id);
+		if (billEntity.isPresent()) {
+			// do magic only if paymentCanceled == true
+			if (billEntity.get().getPaymentCanceled() == true) {
+				billRepository.delete(billEntity.get());
+				return new ResponseEntity<BillEntity>(billEntity.get(), HttpStatus.OK);
+			}
+			return new ResponseEntity<RESTError>(new RESTError(11, "Payment not cancled. bill cannot be removed"),
+					HttpStatus.BAD_REQUEST);
+		}
+		return new ResponseEntity<RESTError>(new RESTError(21, "Bill not found in database"), HttpStatus.NOT_FOUND);
+	}
+
+	// find by buyer ID
+	@JsonView(Views.Admin.class)
+	@RequestMapping(value = "/findByBuyer/{buyerId}", method = RequestMethod.GET)
+	public ResponseEntity<?> getBillsByUser(@PathVariable Integer buyerId) {
+		Optional<UserEntity> buyer = userRepository.findById(buyerId);
+		if (buyer.isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(2222, "User not found, check your entry."),
+					HttpStatus.NOT_FOUND);
+		}
+
+		if (!buyer.get().getUserRole().equals(ERole.ROLE_CUSTOMER)) {
+			return new ResponseEntity<RESTError>(new RESTError(2223, "User not a buyer, check your entry."),
+					HttpStatus.NOT_FOUND);
+		}
+		return new ResponseEntity<List<BillEntity>>(billRepository.findByUser(buyer), HttpStatus.OK);
+	}
+
+	// find bills by category
+	@JsonView(Views.Admin.class)
+	@RequestMapping(value = "/findByCategory/{categoryId}", method = RequestMethod.GET)
+	public ResponseEntity<?> getBillsByCategory(@PathVariable Integer categoryId) {
+		Optional<CategoryEntity> category = categoryRepository.findById(categoryId);
+		if (category.isEmpty()) {
+			return new ResponseEntity<RESTError>(new RESTError(1121, "Category not found in database"),
+					HttpStatus.NOT_FOUND);
+		}
+
+		List<OfferEntity> offers = offerRepository.findAllByCategory(category);
+
+		if (offers.isEmpty()) {
+			return new ResponseEntity<RESTError>(
+					new RESTError(1123, "No offers in selected category found in database"), HttpStatus.NOT_FOUND);
+		}
+
+		List<List<BillEntity>> bills = new ArrayList<>();
+		for (OfferEntity offerEntity : offers) {
+			if (!billRepository.findAllByOffer(offerEntity).isEmpty()) {
+				bills.add(billRepository.findAllByOffer(offerEntity));
+			}
+		}
+
+		if (bills.isEmpty()) {
+			return new ResponseEntity<RESTError>(
+					new RESTError(1125, "No bills for selected category found in database"), HttpStatus.NOT_FOUND);
+		}
+
+		return new ResponseEntity<List<List<BillEntity>>>(bills, HttpStatus.OK);
+	}
+
+	// find by date range
+	@JsonView(Views.Admin.class)
+	@RequestMapping(value = "/findByDate/{date1}/and/{date2}", method = RequestMethod.GET)
+	public ResponseEntity<?> findByDate(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date1,
+			@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date2) {
+		return new ResponseEntity<List<BillEntity>>(billService.getBillsByDate(date1, date2), HttpStatus.OK);
+	}
+
+	// generate daily reports
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/generateReportByDate/{startDate}/and/{endDate}")
 	public ResponseEntity<?> getReportSalesByDay(
@@ -219,7 +250,7 @@ public class BillController {
 				HttpStatus.OK);
 	}
 
-	// 3.5 -- T5
+	// generate reports by category
 	@JsonView(Views.Admin.class)
 	@RequestMapping(method = RequestMethod.GET, value = "/generateReport/{startDate}/and/{endDate}/category/{categoryID}")
 	public ResponseEntity<?> getReportSales(@PathVariable @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate startDate,
